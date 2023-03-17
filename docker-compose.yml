@@ -1,0 +1,42 @@
+# custom app config
+# overrides DCAPE/apps/drone/dcape-app/docker-compose.yml
+
+version: '2'
+
+services:
+  app:
+    environment:
+      - PG_CONNECTION_STRING=postgres://${PGUSER}:${PGPASSWORD}@db/${PGDATABASE}?sslmode=disable
+    volumes:
+      - ${APP_ROOT}/data:/data
+
+  node-agent:
+    image: ghcr.io/coroot/coroot-node-agent:latest
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /sys/kernel/debug:/sys/kernel/debug:rw
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+    pid: host
+    privileged: true
+    networks:
+      - lan
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=80"
+      - "prometheus.io/extra-labels=job:coroot-node-agent"
+
+  # https://coroot.com/docs/metric-exporters/pg-agent/installation
+  pg-agent:
+    image: ghcr.io/coroot/coroot-pg-agent:latest
+    environment:
+      - DSN=postgresql://${PGUSER}:${PGPASSWORD}@db:5432/postgres?sslmode=disable&connect_timeout=1&statement_timeout=30000
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - lan
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=80"
+      - "prometheus.io/extra-labels=job:coroot-pg-agent"
