@@ -16,7 +16,7 @@ ADD_USER = no
 # ------------------------------------------------------------------------------
 # app custom config
 
-IMAGE_VER       ?= 0.14.5
+IMAGE_VER       ?= 0.14.8
 
 DCAPE_ROOT      ?= /opt/dcape/var
 
