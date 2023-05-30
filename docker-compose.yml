@@ -11,7 +11,8 @@ services:
       - ${APP_ROOT}/data:/data
 
   node-agent:
-    image: ghcr.io/coroot/coroot-node-agent:latest
+    image: ghcr.io/coroot/coroot-node-agent:${NODE_AGENT_VER}
+    command: --cgroupfs-root /host/sys/fs/cgroup
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
@@ -28,7 +29,7 @@ services:
 
   # https://coroot.com/docs/metric-exporters/pg-agent/installation
   pg-agent:
-    image: ghcr.io/coroot/coroot-pg-agent:latest
+    image: ghcr.io/coroot/coroot-pg-agent:${PG_AGENT_VER}
     environment:
       - DSN=postgresql://${PGUSER}:${PGPASSWORD}@db:5432/postgres?sslmode=disable&connect_timeout=1&statement_timeout=30000
     volumes:
