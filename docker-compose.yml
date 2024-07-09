@@ -1,43 +1,39 @@
-# custom app config
+# coroot compose config
 # overrides DCAPE/apps/drone/dcape-app/docker-compose.yml
-
-version: '2'
 
 services:
   app:
+    profiles: ["server", "all"]
+    command:
+      - '--data-dir=/data'
+      - '--bootstrap-prometheus-url=${P8S_ADDR}'
+      - '--bootstrap-refresh-interval=${REFRESH_INTERVAL}'
+      - '--bootstrap-clickhouse-address=${CH_ADDR}'
     environment:
       - PG_CONNECTION_STRING=postgres://${PGUSER}:${PGPASSWORD}@db/${PGDATABASE}?sslmode=disable
     volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
       - ${APP_ROOT}/data:/data
 
-  node-agent:
-    image: ghcr.io/coroot/coroot-node-agent:${NODE_AGENT_VER}
-    command: --cgroupfs-root /host/sys/fs/cgroup
+  agent:
+    image: ${AGENT_IMAGE}:${AGENT_IMAGE_VER}
+    profiles: ["agent", "all"]
+    command:
+      - '--collector-endpoint=${COLLECTOR}'
+      - '--cgroupfs-root=/host/sys/fs/cgroup'
+      - '--wal-dir=/data'
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-      - /sys/kernel/debug:/sys/kernel/debug:rw
-      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+      - /sys/kernel/tracing:/sys/kernel/tracing
+      - /sys/kernel/debug:/sys/kernel/debug
+      - /sys/fs/cgroup:/host/sys/fs/cgroup
+      - ${APP_ROOT}/node_data:/data
     pid: host
     privileged: true
-    networks:
-      - lan
     labels:
       - "prometheus.io/scrape=true"
       - "prometheus.io/port=80"
       - "prometheus.io/extra-labels=job:coroot-node-agent"
-
-  # https://coroot.com/docs/metric-exporters/pg-agent/installation
-  pg-agent:
-    image: ghcr.io/coroot/coroot-pg-agent:${PG_AGENT_VER}
-    environment:
-      - DSN=postgresql://${PGUSER}:${PGPASSWORD}@db:5432/postgres?sslmode=disable&connect_timeout=1&statement_timeout=30000
-    volumes:
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    networks:
-      - lan
-    labels:
-      - "prometheus.io/scrape=true"
-      - "prometheus.io/port=80"
-      - "prometheus.io/extra-labels=job:coroot-pg-agent"
+    restart: always
